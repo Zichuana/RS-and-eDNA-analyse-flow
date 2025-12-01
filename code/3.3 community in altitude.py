@@ -1,70 +1,67 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+alpha 多样性 4 指标 1 行 4 图
+- 每个图用不同可爱色系
+- 横坐标文本自动 45° 倾斜，不重叠
+- 保存为横向长图，适合论文插图
+"""
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib import rcParams
-from matplotlib.patches import Patch
 
-# 1. Set font
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = ['Times New Roman']
-plt.rcParams['axes.unicode_minus'] = False
+#  ------------------------------------------------------------------
+df = pd.read_excel("alpha.xlsx", index_col=0)
+df.columns = df.columns.str.strip()
+if 'Group' in df.columns:
+    df = df.rename(columns={'Group': 'group'})
+df['group'] = df['group'].astype(str)
 
-# 2. Load data
-data = pd.read_csv('level-2-59_dem.csv', index_col=0)
-# data = data.T
+# ----------------------------------------------------------
+metrics = ['simpson_diversity', 'shannon_entropy', 'pielou_evenness', 'faith_pd']
+rmb_palettes = {
+    # 'observed_features': ['#7B1FA2', '#9C27B0', '#BA68C8', '#E1BEE7'],
+    # 100 元红
+    'simpson_diversity': ['#C83C3C', '#D85A5A', '#E37373', '#ED8B8B'],
+    # 50 元绿
+    'shannon_entropy':   ['#2E7D32', '#43A047', '#66BB6A', '#81C784'],
+    # 20 元棕
+    'pielou_evenness':   ['#8D6E63', '#A1887F', '#BCAAA4', '#D7CCC8'],
+    # 10 元蓝
+    'faith_pd':          ['#1565C0', '#1976D2', '#42A5F5', '#64B5F6']
+}
 
-# 3. Extract grouping information (assuming the last column is the grouping information)
-groups = data.iloc[:, -1]
-print(groups)
-data = data.iloc[:, :-1].T  # Remove the grouping column
 
-# 4. Calculate relative abundance
-rel_abundance = data.div(data.sum(axis=0), axis=1) * 100
-print(rel_abundance)
-# 5. Calculate total (or mean) abundance by group
-grouped_abundance = rel_abundance.T.groupby(groups).mean().T  # Use sum() or mean()
-print(grouped_abundance)
-# 6. Calculate average abundance for all samples (for legend)
-total_abundance = rel_abundance.mean(axis=1).sort_values(ascending=False)
+# ----------------------------------------------------------
+fig, axes = plt.subplots(1, 4, figsize=(10, 4), sharey=False)   # 横向长图
+plt.rcParams['font.family'] = 'Arial'
+plt.rcParams['font.size']   = 12
 
-# 7. Set colors
-colors = plt.cm.tab20.colors
-sorted_phyla = total_abundance.index
-color_mapping = {phylum: colors[i % len(colors)] for i, phylum in enumerate(sorted_phyla)}
+for ax, m in zip(axes, metrics):
+    # 散点
+    sns.stripplot(
+        data=df, x='group', y=m,
+        color='black', edgecolor='gray', size=3, alpha=0.7, jitter=True, ax=ax,
+        order=["2500-3000", "3000-3500", "3500-4000", "4000-4500", "4500-5000"]
+    )
+    # 箱子
+    sns.boxplot(
+        data=df, x='group', y=m,
+        hue='group', palette=rmb_palettes[m],
+        width=0.5, flierprops={"marker": ""}, legend=False, ax=ax,
+        order=["2500-3000", "3000-3500", "3500-4000", "4000-4500", "4500-5000"]
+    )
+    # 标题 & 轴标签
+    ax.set_title(m.replace('_', ' ').title(), fontsize=12, weight='bold')
+    ax.set_xlabel('Group', fontsize=12)
+    ax.set_ylabel(m.replace('_', ' ').title(), fontsize=12)
+    # 长标签倾斜
+    ax.tick_params(axis='x', rotation=45)
+    # 去掉上边右边边框
+    sns.despine(ax=ax, trim=True)
 
-# try:
-#     plt.style.use('seaborn-v0_8')
-# except:
-#     plt.style.use('seaborn')
-
-# 8. Plot stacked bar chart (by group)
-plt.figure(figsize=(12, 10))
-bottom = np.zeros(len(grouped_abundance.columns))
-
-for phylum in reversed(sorted_phyla):
-    plt.bar(grouped_abundance.columns, grouped_abundance.loc[phylum], 
-            bottom=bottom, color=color_mapping[phylum])
-    bottom += grouped_abundance.loc[phylum]
-
-# 9. Create legend (showing average abundance for all samples)
-legend_handles = [Patch(facecolor=color_mapping[phylum], 
-                        label=f"{phylum} ({total_abundance[phylum]:.1f}%)") 
-                 for phylum in sorted_phyla]
-
-# 10. Beautify the chart
-plt.title('Relative Abundance by Altitude', fontsize=18, pad=20, fontname='Times New Roman')
-plt.ylabel('Relative Abundance (%)', fontsize=18, fontname='Times New Roman')
-plt.xlabel('Samples', fontsize=18, fontname='Times New Roman')
-# plt.xticks(fontsize=16)
-plt.xticks(rotation=45, ha='right', fontsize=16, fontname='Times New Roman')
-plt.yticks(np.arange(0, 101, 10), [f"{int(y)}%" for y in np.arange(0, 101, 10)], fontsize=16, fontname='Times New Roman')
-
-# 11. Add legend
-plt.legend(handles=legend_handles,
-           bbox_to_anchor=(1, 1), loc='upper left',
-           fontsize=14, ncol=1, framealpha=0.5,
-           handlelength=1.0, handleheight=1.0, prop={'family': 'Times New Roman', 'size': 16}) 
-
+# ----------------------------------------------------------
 plt.tight_layout()
-plt.savefig('community_by_group_66.png', dpi=300, bbox_inches='tight')
+plt.savefig('alpha_metrics_cute_row.png', dpi=300)
 plt.show()
+
