@@ -34,16 +34,38 @@ print("\nDescriptive statistics:\n", df_std.describe())
 # ----------------------------
 # Define model syntax (similar to lavaan syntax)
 if bottom:
+    # model_spec = """
+    # # 结构模型
+    # RSEI_mean ~ NDVI_mean + NDBSI_mean + WET_mean + LST_mean
+    # NDVI_mean ~ NDBSI_mean + WET_mean + LST_mean
+    # NDBSI_mean ~ NDVI_mean + WET_mean + LST_mean
+    # WET_mean ~ NDVI_mean + NDBSI_mean + LST_mean
+    # LST_mean ~ NDVI_mean + NDBSI_mean + WET_mean
+    # SI_mean ~ NDVI_mean + NDBSI_mean + WET_mean + LST_mean
+    # Shannon ~ RSEI_mean + SI_mean
+    # Fisher_alpha ~ RSEI_mean + SI_mean
+    # Simpson ~ RSEI_mean + SI_mean
+    # Pielou_evenness ~ RSEI_mean + SI_mean
+
+    # # 允许生物多样性指数的残差相关
+    # Shannon ~~ Fisher_alpha
+    # Shannon ~~ Simpson
+    # Shannon ~~ Pielou_evenness
+    # Fisher_alpha ~~ Simpson
+    # Fisher_alpha ~~ Pielou_evenness
+    # Simpson ~~ Pielou_evenness
+    # """
+    # ['observed_features', 'simpson_diversity',	'shannon_entropy',	'pielou_evenness', 'faith_pd']
     model_spec = """
-    # Structural model (retaining unidirectional paths)
+    # 结构模型（保留单向路径）
     RSEI_mean ~ NDVI_mean + NDBSI_mean + WET_mean + LST_mean
     SI_mean ~ NDVI_mean + NDBSI_mean + WET_mean + LST_mean
-    Shannon ~ RSEI_mean + SI_mean
-    Fisher_alpha ~ RSEI_mean + SI_mean
-    Simpson ~ RSEI_mean + SI_mean
-    Pielou_evenness ~ RSEI_mean + SI_mean
+    simpson_diversity ~ RSEI_mean + SI_mean
+    shannon_entropy ~ RSEI_mean + SI_mean
+    pielou_evenness ~ RSEI_mean + SI_mean
+    faith_pd ~ RSEI_mean + SI_mean
 
-    # Residual correlations between environmental variables (alternative to bidirectional relationships)
+    # 环境变量的残差相关（双向关系的替代）
     NDVI_mean ~~ NDBSI_mean
     NDVI_mean ~~ WET_mean
     NDVI_mean ~~ LST_mean
@@ -52,25 +74,25 @@ if bottom:
     WET_mean ~~ LST_mean
     RSEI_mean ~~ SI_mean
 
-    # Residual correlations between biodiversity indices
-    Shannon ~~ Fisher_alpha
-    Shannon ~~ Simpson
-    Shannon ~~ Pielou_evenness
-    Fisher_alpha ~~ Simpson
-    Fisher_alpha ~~ Pielou_evenness
-    Simpson ~~ Pielou_evenness
+    # 生物多样性指数的残差相关
+    simpson_diversity ~~ shannon_entropy
+    simpson_diversity ~~ pielou_evenness
+    simpson_diversity ~~ faith_pd
+    shannon_entropy ~~ pielou_evenness
+    shannon_entropy ~~ faith_pd
+    pielou_evenness ~~ faith_pd
     """
 else:
     model_spec = """
-    # Structural model
+    # 结构模型
     RSEI_std ~ NDVI_std + NDBSI_std + WET_std + LST_std
     SI_std ~ NDVI_std + NDBSI_std + WET_std + LST_std
-    Shannon ~ RSEI_std + SI_std
-    Fisher_alpha ~ RSEI_std + SI_std
-    Simpson ~ RSEI_std + SI_std
-    Pielou_evenness ~ RSEI_std + SI_std
+    simpson_diversity ~ RSEI_std + SI_std
+    shannon_entropy ~ RSEI_std + SI_std
+    pielou_evenness ~ RSEI_std + SI_std
+    faith_pd ~ RSEI_std + SI_std
 
-    # Residual correlations between environmental variables (alternative to bidirectional relationships)
+     # 环境变量的残差相关（双向关系的替代）
     NDVI_std ~~ NDBSI_std
     NDVI_std ~~ WET_std
     NDVI_std ~~ LST_std
@@ -79,15 +101,14 @@ else:
     WET_std ~~ LST_std
     RSEI_std ~~ SI_std
 
-    # Residual correlations between biodiversity indices
-    Shannon ~~ Fisher_alpha
-    Shannon ~~ Simpson
-    Shannon ~~ Pielou_evenness
-    Fisher_alpha ~~ Simpson
-    Fisher_alpha ~~ Pielou_evenness
-    Simpson ~~ Pielou_evenness
+    # 允许生物多样性指数的残差相关
+    simpson_diversity ~~ shannon_entropy
+    simpson_diversity ~~ pielou_evenness
+    simpson_diversity ~~ faith_pd
+    shannon_entropy ~~ pielou_evenness
+    shannon_entropy ~~ faith_pd
+    pielou_evenness ~~ faith_pd
     """
-
 # Create model
 model = Model(model_spec)
 model.fit(df_std)  # Bind data
